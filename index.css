@@ -1,1 +1,7 @@
 @import "tailwindcss";
+
+.hero-bg {
+  background-image: url('./src/assets/background.webp');
+  background-size: cover;
+  background-position: center;
+}

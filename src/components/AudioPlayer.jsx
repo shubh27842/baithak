@@ -1,18 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipForward, SkipBack, Volume2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { Play, Pause, SkipForward, SkipBack, Volume2 } from "lucide-react";
 
 export const AudioPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [playerReady, setPlayerReady] = useState(false);
-  const [currentTrackTitle, setCurrentTrackTitle] = useState('Baithak Beats Loaded');
+  const [currentTrackTitle, setCurrentTrackTitle] = useState(
+    "Baithak Beats Loaded",
+  );
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  
+
   const playerRef = useRef(null);
   const progressInterval = useRef(null);
-  const PLAYLIST_ID = process.env.PLAYLIST_ID; 
+  const PLAYLIST_ID = process.env.PLAYLIST_ID;
 
   useEffect(() => {
     let isMounted = true;
@@ -20,11 +22,11 @@ export const AudioPlayer = () => {
     // Function to initialize player immediately if YT is ready
     const initPlayer = () => {
       if (window.YT && window.YT.Player && !playerRef.current) {
-        playerRef.current = new window.YT.Player('youtube-audio-player', {
-          height: '0',
-          width: '0',
+        playerRef.current = new window.YT.Player("youtube-audio-player", {
+          height: "0",
+          width: "0",
           playerVars: {
-            listType: 'playlist',
+            listType: "playlist",
             list: PLAYLIST_ID,
             autoplay: 1,
             controls: 0,
@@ -56,93 +58,28 @@ export const AudioPlayer = () => {
         });
       }
     };
-
-    if (window.YT && window.YT.Player) {
-      initPlayer();
-    } else {
-      window.onYouTubeIframeAPIReady = initPlayer;
-    }
+    // Defer YouTube script loading slightly so the browser paints text first (improves FCP)
+    const timer = setTimeout(() => {
+      if (window.YT && window.YT.Player) {
+        initPlayer();
+      } else {
+        window.onYouTubeIframeAPIReady = initPlayer;
+      }
+    }, 100);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, []);
-
-  // 1. Register Media Session & WakeLock for Android & iOS Background Playback
-  useEffect(() => {
-    let wakeLock = null;
-
-    // Request WakeLock to keep background thread alive on Android
-    const requestWakeLock = async () => {
-      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
-        try {
-          wakeLock = await navigator.wakeLock.request('screen');
-        } catch (err) {
-          console.log(`WakeLock error: ${err.name}, ${err.message}`);
-        }
-      }
-    };
-
-    requestWakeLock();
-
-    // Re-acquire wake lock if user switches back to tab
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        requestWakeLock();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Register Media Session (Works on Android notification bar & iOS lock screen)
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentTrackTitle || 'Baithak Session',
-        artist: 'Baithak Beats',
-        album: 'Late Night Lofi',
-        artwork: [
-          { src: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=512&h=512&fit=crop', sizes: '512x512', type: 'image/jpeg' }
-        ]
-      });
-
-      navigator.mediaSession.setActionHandler('play', () => {
-        if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
-          playerRef.current.playVideo();
-        }
-      });
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
-          playerRef.current.pauseVideo();
-        }
-      });
-
-      navigator.mediaSession.setActionHandler('previoustrack', () => {
-        if (playerRef.current && typeof playerRef.current.previousVideo === 'function') {
-          playerRef.current.previousVideo();
-          setTimeout(() => updateTrackInfo(playerRef.current), 400);
-        }
-      });
-
-      navigator.mediaSession.setActionHandler('nexttrack', () => {
-        if (playerRef.current && typeof playerRef.current.nextVideo === 'function') {
-          playerRef.current.nextVideo();
-          setTimeout(() => updateTrackInfo(playerRef.current), 400);
-        }
-      });
-    }
-
-    return () => {
-      if (wakeLock !== null) {
-        wakeLock.release().catch(() => {});
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentTrackTitle, playerReady]);
 
   const startProgressTimer = () => {
     stopProgressTimer();
     progressInterval.current = setInterval(() => {
-      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+      if (
+        playerRef.current &&
+        typeof playerRef.current.getCurrentTime === "function"
+      ) {
         setCurrentTime(playerRef.current.getCurrentTime() || 0);
         setDuration(playerRef.current.getDuration() || 0);
       }
@@ -156,7 +93,7 @@ export const AudioPlayer = () => {
   };
 
   const updateTrackInfo = (player) => {
-    if (player && typeof player.getVideoData === 'function') {
+    if (player && typeof player.getVideoData === "function") {
       const data = player.getVideoData();
       if (data && data.title) {
         setCurrentTrackTitle(data.title);
@@ -209,7 +146,7 @@ export const AudioPlayer = () => {
     if (isNaN(secs)) return "0:00";
     const minutes = Math.floor(secs / 60);
     const seconds = Math.floor(secs % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
   return (
@@ -219,20 +156,21 @@ export const AudioPlayer = () => {
 
       <div className="flex items-center justify-between">
         <div className="overflow-hidden pr-2">
-          <h4 className="text-sm font-semibold text-amber-200 truncate">{currentTrackTitle}</h4>
-          {/* <p className="text-xs text-amber-400/70">YouTube Lo-Fi Playlist • Baithak Session</p> */}
+          <p className="text-sm font-semibold text-amber-200 truncate">
+            {currentTrackTitle}
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button 
+          <button
+            aria-label="Play Pause Button"
             onClick={togglePlay}
             disabled={!playerReady}
-            className="p-3 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-full transition text-white shadow-lg cursor-pointer"
-          >
+            className="p-3 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-full transition text-white shadow-lg cursor-pointer">
             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
           </button>
         </div>
       </div>
-        {/* // removed progress bar */}
+      {/* // removed progress bar */}
       {/* <div className="flex flex-col gap-1 w-full">
         <input 
           type="range"
@@ -251,20 +189,29 @@ export const AudioPlayer = () => {
 
       <div className="flex items-center justify-between  text-amber-300">
         <div className="flex items-center gap-4">
-          <button onClick={handlePrev} className="hover:text-white transition cursor-pointer" title="Previous Track">
+          <button
+            aria-label="previous"
+            onClick={handlePrev}
+            className="hover:text-white transition cursor-pointer"
+            title="Previous Track">
             <SkipBack size={18} />
           </button>
-          <button onClick={handleNext} className="hover:text-white transition cursor-pointer" title="Next Track">
+          <button
+            aria-label="next"
+            onClick={handleNext}
+            className="hover:text-white transition cursor-pointer"
+            title="Next Track">
             <SkipForward size={18} />
           </button>
         </div>
         <div className="flex items-center gap-2">
           <Volume2 size={16} className="text-amber-400" />
-          <input 
-            type="range" 
-            min="0" 
-            max="100" 
-            value={volume} 
+          <input
+            aria-label="volume bar"
+            type="range"
+            min="0"
+            max="100"
+            value={volume}
             onChange={handleVolumeChange}
             className="w-20 accent-amber-500 cursor-pointer h-1 bg-amber-900 rounded-lg"
           />
