@@ -6,7 +6,7 @@ import { Tagline } from './components/Tagline';
 export default function App() {
      const bgImage = new URL("./assets/background.webp", import.meta.url).href;
   return (
-    <div className="relative w-screen h-screen overflow-hidden font-sans select-none">
+    <div className="relative w-screen h-dvh overflow-hidden font-sans select-none">
       {/* Background Image with Warm Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center filter brightness-95 saturate-105"

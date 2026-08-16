@@ -26,7 +26,7 @@ export const AudioPlayer = () => {
           playerVars: {
             listType: 'playlist',
             list: PLAYLIST_ID,
-            autoplay: 0,
+            autoplay: 1,
             controls: 0,
             disablekb: 1,
             enablejsapi: 1,
@@ -67,6 +67,77 @@ export const AudioPlayer = () => {
       isMounted = false;
     };
   }, []);
+
+  // 1. Register Media Session & WakeLock for Android & iOS Background Playback
+  useEffect(() => {
+    let wakeLock = null;
+
+    // Request WakeLock to keep background thread alive on Android
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.log(`WakeLock error: ${err.name}, ${err.message}`);
+        }
+      }
+    };
+
+    requestWakeLock();
+
+    // Re-acquire wake lock if user switches back to tab
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Register Media Session (Works on Android notification bar & iOS lock screen)
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrackTitle || 'Baithak Session',
+        artist: 'Baithak Beats',
+        album: 'Late Night Lofi',
+        artwork: [
+          { src: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=512&h=512&fit=crop', sizes: '512x512', type: 'image/jpeg' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
+          playerRef.current.playVideo();
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
+          playerRef.current.pauseVideo();
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (playerRef.current && typeof playerRef.current.previousVideo === 'function') {
+          playerRef.current.previousVideo();
+          setTimeout(() => updateTrackInfo(playerRef.current), 400);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (playerRef.current && typeof playerRef.current.nextVideo === 'function') {
+          playerRef.current.nextVideo();
+          setTimeout(() => updateTrackInfo(playerRef.current), 400);
+        }
+      });
+    }
+
+    return () => {
+      if (wakeLock !== null) {
+        wakeLock.release().catch(() => {});
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentTrackTitle, playerReady]);
 
   const startProgressTimer = () => {
     stopProgressTimer();
