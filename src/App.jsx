@@ -1,5 +1,4 @@
 import React from "react";
-import { Analytics } from "@vercel/analytics/react";
 import { Navbar } from "./components/Navbar";
 import { AudioPlayer } from "./components/AudioPlayer";
 import { Tagline } from "./components/Tagline";
@@ -34,7 +33,6 @@ export default function App() {
           <AudioPlayer />
         </div>
       </div>
-      <Analytics />
     </div>
   );
 }
